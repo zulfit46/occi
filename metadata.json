@@ -1,0 +1,6 @@
+{
+  "name": "Belajar Huruf dan Suku Kata",
+  "description": "Aplikasi edukasi interaktif untuk anak-anak untuk belajar mengenal huruf, melatih suku kata, dan menyusun kata dengan animasi dan suara yang menyenangkan.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
