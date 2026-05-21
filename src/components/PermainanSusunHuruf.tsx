@@ -101,11 +101,25 @@ export default function PermainanSusunHuruf({ onEarnStars, stars }: PermainanSus
       return;
     }
 
-    // Drag-and-drop coordinate resolution
-    const x = info.point.x;
-    const y = info.point.y;
+    // Direct event check fallback to bolster accuracy on various mobile browsers & iframe conditions
+    let x = info.point.x;
+    let y = info.point.y;
 
-    let droppedIndex = -1;
+    if (event) {
+      if (event.clientX !== undefined && event.clientX !== 0) {
+        x = event.clientX;
+        y = event.clientY;
+      } else if (event.changedTouches && event.changedTouches.length > 0) {
+        x = event.changedTouches[0].clientX;
+        y = event.changedTouches[0].clientY;
+      } else if (event.touches && event.touches.length > 0) {
+        x = event.touches[0].clientX;
+        y = event.touches[0].clientY;
+      }
+    }
+
+    let closestIndex = -1;
+    let minDistance = Infinity;
     const slotsCount = currentLevelWord.word.length;
 
     for (let i = 0; i < slotsCount; i++) {
@@ -113,22 +127,21 @@ export default function PermainanSusunHuruf({ onEarnStars, stars }: PermainanSus
         const el = document.getElementById(`target-slot-container-${i}`);
         if (el) {
           const rect = el.getBoundingClientRect();
-          // Provide 30px hot-spot padding around target slot box to make touch drops feel lenient and satisfying!
-          if (
-            x >= rect.left - 30 &&
-            x <= rect.right + 30 &&
-            y >= rect.top - 30 &&
-            y <= rect.bottom + 30
-          ) {
-            droppedIndex = i;
-            break;
+          const centerX = rect.left + rect.width / 2;
+          const centerY = rect.top + rect.height / 2;
+          const distance = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+          
+          if (distance < minDistance) {
+            minDistance = distance;
+            closestIndex = i;
           }
         }
       }
     }
 
-    if (droppedIndex !== -1) {
-      placeLetterInSlot(item, droppedIndex);
+    // Snapping radius of 120px (generous for standard mobile touch accuracy)
+    if (closestIndex !== -1 && minDistance < 120) {
+      placeLetterInSlot(item, closestIndex);
     } else {
       // Returned to origin
       synth.playPop();
