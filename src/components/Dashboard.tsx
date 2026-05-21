@@ -20,6 +20,7 @@ import {
 import { UserStats } from '../types';
 import { synth, speakIndonesian } from '../utils/speech';
 import { syllableWordsData, sentencesData, gameWordsData } from '../data';
+import occiImage from '../assets/images/occi.png';
 
 interface DashboardProps {
   stats: UserStats;
@@ -205,7 +206,7 @@ export default function Dashboard({
         {/* Left Side: Generative illustration matching dashboard mockup */}
         <div className="lg:col-span-5 relative flex items-center justify-center bg-sky-200/40 p-6 lg:p-0">
           <img 
-            src="/src/assets/images/occi.png" 
+            src={occiImage} 
             alt="Anak Membaca" 
             referrerPolicy="no-referrer"
             className="w-full max-w-[280px] lg:max-w-full h-auto max-h-[290px] object-contain rounded-3xl transform hover:scale-105 transition-transform duration-500"
