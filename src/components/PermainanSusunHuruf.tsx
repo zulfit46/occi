@@ -64,15 +64,21 @@ export default function PermainanSusunHuruf({ onEarnStars, stars }: PermainanSus
   // Click on available letter bubble in the bottom pool
   const selectLetter = (item: LetterItem) => {
     if (isSuccess) return;
-    synth.playPop();
 
     // Find first empty slot
     const emptyIndex = placed.findIndex(slot => slot === null);
     if (emptyIndex === -1) return; // already full
 
+    placeLetterInSlot(item, emptyIndex);
+  };
+
+  const placeLetterInSlot = (item: LetterItem, slotIndex: number) => {
+    if (isSuccess) return;
+    synth.playPop();
+
     // Place letter in slot
     const newPlaced = [...placed];
-    newPlaced[emptyIndex] = item;
+    newPlaced[slotIndex] = item;
     setPlaced(newPlaced);
 
     // Disable in bottom pool
@@ -82,6 +88,50 @@ export default function PermainanSusunHuruf({ onEarnStars, stars }: PermainanSus
     const isNowFull = newPlaced.every(slot => slot !== null);
     if (isNowFull) {
       checkSpelling(newPlaced as LetterItem[]);
+    }
+  };
+
+  const handleDragEnd = (event: any, info: any, item: LetterItem) => {
+    if (isSuccess) return;
+
+    // Calculate drag offset to see if it was a simple tap/click
+    const maxOffset = Math.max(Math.abs(info.offset.x), Math.abs(info.offset.y));
+    if (maxOffset < 8) {
+      selectLetter(item);
+      return;
+    }
+
+    // Drag-and-drop coordinate resolution
+    const x = info.point.x;
+    const y = info.point.y;
+
+    let droppedIndex = -1;
+    const slotsCount = currentLevelWord.word.length;
+
+    for (let i = 0; i < slotsCount; i++) {
+      if (placed[i] === null) {
+        const el = document.getElementById(`target-slot-container-${i}`);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          // Provide 30px hot-spot padding around target slot box to make touch drops feel lenient and satisfying!
+          if (
+            x >= rect.left - 30 &&
+            x <= rect.right + 30 &&
+            y >= rect.top - 30 &&
+            y <= rect.bottom + 30
+          ) {
+            droppedIndex = i;
+            break;
+          }
+        }
+      }
+    }
+
+    if (droppedIndex !== -1) {
+      placeLetterInSlot(item, droppedIndex);
+    } else {
+      // Returned to origin
+      synth.playPop();
     }
   };
 
@@ -291,7 +341,7 @@ export default function PermainanSusunHuruf({ onEarnStars, stars }: PermainanSus
             id="game-target-slots"
           >
             {placed.map((slot, index) => (
-              <div key={index} className="relative">
+              <div key={index} className="relative" id={`target-slot-container-${index}`}>
                 <AnimatePresence mode="wait">
                   {slot ? (
                     <motion.button
@@ -341,22 +391,20 @@ export default function PermainanSusunHuruf({ onEarnStars, stars }: PermainanSus
         {/* SCRAMBLED BALLOONS SUPPLY POOL */}
         <div className="space-y-4 w-full z-10 flex flex-col items-center border-t border-slate-100 pt-6">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center">
-            🎈 Ketuk gelembung balon melayang di bawah:
+            🎈 Tarik atau ketuk gelembung balon melayang di bawah:
           </p>
 
           <div className="flex flex-wrap justify-center gap-4 py-2 min-h-[90px]" id="letter-source-pool">
             {pool.map((item) => (
               <AnimatePresence key={item.id}>
                 {!item.isUsed && (
-                  <motion.button
+                  <motion.div
                     initial={{ y: 0, scale: 0 }}
                     animate={{
                       scale: 1,
                       y: [0, -8, 0],
                     }}
                     exit={{ scale: 0 }}
-                    whileHover={{ scale: 1.15 }}
-                    whileTap={{ scale: 0.9 }}
                     transition={{
                       scale: { type: 'spring', stiffness: 300, damping: 15 },
                       y: {
@@ -365,12 +413,23 @@ export default function PermainanSusunHuruf({ onEarnStars, stars }: PermainanSus
                         ease: 'easeInOut',
                       },
                     }}
-                    onClick={() => selectLetter(item)}
-                    className="w-14 h-14 md:w-16 md:h-16 rounded-full border-2 border-b-6 flex items-center justify-center text-xl md:text-2xl font-black cursor-pointer shadow-lg select-none bg-indigo-100 text-indigo-800 border-indigo-300 hover:bg-indigo-200"
-                    id={`game-source-bubble-${item.id}`}
+                    className="relative"
                   >
-                    {item.char}
-                  </motion.button>
+                    <motion.button
+                      drag
+                      dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+                      dragElastic={0.9}
+                      dragSnapToOrigin={true}
+                      onDragEnd={(event, info) => handleDragEnd(event, info, item)}
+                      whileHover={{ scale: 1.15 }}
+                      whileDrag={{ scale: 1.25, zIndex: 100, cursor: 'grabbing' }}
+                      whileTap={{ scale: 0.9 }}
+                      className="w-14 h-14 md:w-16 md:h-16 rounded-full border-2 border-b-[6px] flex items-center justify-center text-xl md:text-2xl font-black cursor-grab active:cursor-grabbing shadow-lg select-none bg-indigo-100 text-indigo-800 border-indigo-300 hover:bg-indigo-200 touch-none"
+                      id={`game-source-bubble-${item.id}`}
+                    >
+                      {item.char}
+                    </motion.button>
+                  </motion.div>
                 )}
               </AnimatePresence>
             ))}
